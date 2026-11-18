@@ -1,0 +1,33 @@
+# 외부 경로는 /api/..., 앱은 접두어 없이(/exams, /auth/login ...) 서비스하므로 nginx 가 /api 를 떼고 넘긴다.
+#   https://호스트/api/exams  ->  앱 /exams
+# (앱 내부 프로브는 파드로 직접 가므로 /healthz 그대로.)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-tsungmn"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    # 요청 본문 한도 32MB(SHEET_FORGE_MAX_BODY_BYTES)보다 크게. nginx 기본 1m 이면 413 이 난다.
+    nginx.ingress.kubernetes.io/proxy-body-size: "40m"
+    # 내보내기 처리 시간 30초(설계 6장)보다 길게.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+spec:
+  tls:
+    - hosts:
+        - sth.sheet-forge.tsungmn.com
+      secretName: gitops-tls
+  rules:
+    - host: sth.sheet-forge.tsungmn.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: api-service
+                port:
+                  number: 80
+            path: /api(/|$)(.*)
+            pathType: ImplementationSpecific

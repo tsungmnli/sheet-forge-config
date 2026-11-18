@@ -1,0 +1,46 @@
+# DB 마이그레이션(alembic upgrade head). Deployment·작업자가 롤아웃되기 전에 끝까지 돈다.
+#
+# PreSync 가 아니라 Sync 훅(wave 0)인 이유: PreSync 는 Secret 보다 먼저 돌아서 첫 배포 때
+# DATABASE_URL 없이 실패한다. Sync 훅이면 wave 순서(Secret/ConfigMap -1 -> 이 Job 0 -> Deployment 1)를 따른다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sheet-forge-migrate
+  labels:
+    app.kubernetes.io/name: sheet-forge-migrate
+    app.kubernetes.io/part-of: sheet-forge
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sheet-forge-migrate
+        app.kubernetes.io/part-of: sheet-forge
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: tsungmn/sheet-forge-api
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: api-config
+            - secretRef:
+                name: api-secret
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
