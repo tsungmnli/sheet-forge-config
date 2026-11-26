@@ -13,4 +13,4 @@ patches:
 images:
 - name: tsungmn/sheet-forge-web
   newName: tsungmn/sheet-forge-web
-  newTag: 5254bc23c81351220b318d956f21ca3fc3c17fcf
+  newTag: 90a3871b2818c78056bb431aba0791c5d8c2021b
