@@ -15,4 +15,4 @@ patches:
 images:
 - name: tsungmn/sheet-forge-api
   newName: tsungmn/sheet-forge-api
-  newTag: 3d5388595668ce1e31c43c42a7d32005d20402ac
+  newTag: 91fb80889f908792908edf61beffce265358d018
